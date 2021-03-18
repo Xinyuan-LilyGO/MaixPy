@@ -437,25 +437,14 @@ static mp_obj_t py_lcd_display(size_t n_args, const mp_obj_t *args, mp_map_t *kw
                                       rect.x, rect.y, rect.w, rect.h, (uint8_t *)(arg_img->pixels));
             } else {
                 lcd->draw_pic_roi(l_pad, t_pad, arg_img->w, arg_img->h,
-<<<<<<< Updated upstream
-                                 rect.x, rect.y, rect.w, rect.h, (uint8_t *)(arg_img->pixels));
-=======
-                                  rect.x, rect.y, rect.w, rect.h, (uint32_t *)(arg_img->pixels));
->>>>>>> Stashed changes
+                                  rect.x, rect.y, rect.w, rect.h, (uint8_t *)(arg_img->pixels));
             }
         } else {
             //no cut
             if (IM_IS_GS(arg_img)) {
                 lcd->draw_pic_gray(l_pad, t_pad, rect.w, rect.h, (uint8_t *)(arg_img->pixels));
-<<<<<<< Updated upstream
-            }
-            else
-            {
-                lcd->draw_picture(l_pad, t_pad, rect.w, rect.h, (uint8_t *)(arg_img->pixels));
-=======
             } else {
-                lcd->draw_picture(l_pad, t_pad, rect.w, rect.h, (uint32_t *)(arg_img->pixels));
->>>>>>> Stashed changes
+                lcd->draw_picture(l_pad, t_pad, rect.w, rect.h, (uint8_t *)(arg_img->pixels));
             }
         }
         return mp_const_none;
@@ -664,15 +653,9 @@ STATIC mp_obj_t py_lcd_draw_string(size_t n_args, const mp_obj_t *args)
         *(uint16_t *)(str_buf + i * 2) = (uint16_t)bgc;
     }
     imlib_draw_ascii_string(&arg_img, 0, 0, str_cut,
-<<<<<<< Updated upstream
-                      fontc, 1, 0, 0,
-                      true);
-    lcd->draw_picture(x0, y0, width, height, (uint8_t *)str_buf);
-=======
                             fontc, 1, 0, 0,
                             true);
-    lcd->draw_picture(x0, y0, width, height, (uint32_t *)str_buf);
->>>>>>> Stashed changes
+    lcd->draw_picture(x0, y0, width, height, (uint8_t *)str_buf);
     free(str_buf);
     free(str_cut);
     return mp_const_none;
@@ -686,9 +669,8 @@ STATIC mp_obj_t py_lcd_fill_rectangle(size_t n_args, const mp_obj_t *args)
     uint16_t y0 = mp_obj_get_int(args[1]);
     uint16_t x1 = mp_obj_get_int(args[2]) + x0;
     uint16_t y1 = mp_obj_get_int(args[3]) + y0;
-    if(mp_obj_is_type(args[4], &mp_type_tuple))
-    {
-        mp_obj_t* tuple_data = NULL;
+    if (mp_obj_is_type(args[4], &mp_type_tuple)) {
+        mp_obj_t *tuple_data = NULL;
         size_t len;
         uint8_t rgb[3];
         mp_obj_tuple_get(args[4], &len, &tuple_data);
@@ -696,12 +678,10 @@ STATIC mp_obj_t py_lcd_fill_rectangle(size_t n_args, const mp_obj_t *args)
         rgb[1] = mp_obj_get_int(tuple_data[1]);
         rgb[2] = mp_obj_get_int(tuple_data[2]);
         color = COLOR_R8_G8_B8_TO_RGB565(rgb[0], rgb[1], rgb[2]);
-    }
-    else
-    {
+    } else {
         color = mp_obj_get_int(args[4]);
     }
-    if(x0 >= lcd_para.width || y0 >= lcd_para.height || x1 >= lcd_para.width || y1 >= lcd_para.height){
+    if (x0 >= lcd_para.width || y0 >= lcd_para.height || x1 >= lcd_para.width || y1 >= lcd_para.height) {
         mp_raise_ValueError("arg error");
     }
     lcd->fill_rectangle(x0, y0, x1, y1, color);
@@ -738,24 +718,6 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(py_lcd_fill_rectangle_obj, 3, 5, py_l
 
 static const mp_map_elem_t globals_dict_table[] = {
     {MP_OBJ_NEW_QSTR(MP_QSTR___name__), MP_OBJ_NEW_QSTR(MP_QSTR_lcd)},
-<<<<<<< Updated upstream
-    {MP_OBJ_NEW_QSTR(MP_QSTR_init), (mp_obj_t)&py_lcd_init_obj},
-    {MP_OBJ_NEW_QSTR(MP_QSTR_deinit), (mp_obj_t)&py_lcd_deinit_obj},
-    {MP_OBJ_NEW_QSTR(MP_QSTR_width), (mp_obj_t)&py_lcd_width_obj},
-    {MP_OBJ_NEW_QSTR(MP_QSTR_height), (mp_obj_t)&py_lcd_height_obj},
-    {MP_OBJ_NEW_QSTR(MP_QSTR_type), (mp_obj_t)&py_lcd_type_obj},
-    {MP_OBJ_NEW_QSTR(MP_QSTR_freq), (mp_obj_t)&py_lcd_freq_obj},
-    {MP_OBJ_NEW_QSTR(MP_QSTR_set_backlight), (mp_obj_t)&py_lcd_set_backlight_obj},
-    {MP_OBJ_NEW_QSTR(MP_QSTR_get_backlight), (mp_obj_t)&py_lcd_get_backlight_obj},
-    {MP_OBJ_NEW_QSTR(MP_QSTR_display), (mp_obj_t)&py_lcd_display_obj},
-    {MP_OBJ_NEW_QSTR(MP_QSTR_clear), (mp_obj_t)&py_lcd_clear_obj},
-    {MP_OBJ_NEW_QSTR(MP_QSTR_direction), (mp_obj_t)&py_lcd_direction_obj},
-    {MP_OBJ_NEW_QSTR(MP_QSTR_rotation), (mp_obj_t)&py_lcd_rotation_obj},
-    {MP_OBJ_NEW_QSTR(MP_QSTR_mirror), (mp_obj_t)&py_lcd_mirror_obj},
-    {MP_OBJ_NEW_QSTR(MP_QSTR_bgr_to_rgb), (mp_obj_t)&py_lcd_bgr_to_rgb_obj},
-    {MP_OBJ_NEW_QSTR(MP_QSTR_draw_string), (mp_obj_t)&py_lcd_draw_string_obj},
-    {MP_OBJ_NEW_QSTR(MP_QSTR_fill_rectangle), (mp_obj_t)&py_lcd_fill_rectangle_obj},
-=======
     {MP_OBJ_NEW_QSTR(MP_QSTR_init), (mp_obj_t) &py_lcd_init_obj},
     {MP_OBJ_NEW_QSTR(MP_QSTR_deinit), (mp_obj_t) &py_lcd_deinit_obj},
     {MP_OBJ_NEW_QSTR(MP_QSTR_width), (mp_obj_t) &py_lcd_width_obj},
@@ -771,7 +733,7 @@ static const mp_map_elem_t globals_dict_table[] = {
     {MP_OBJ_NEW_QSTR(MP_QSTR_mirror), (mp_obj_t) &py_lcd_mirror_obj},
     {MP_OBJ_NEW_QSTR(MP_QSTR_bgr_to_rgb), (mp_obj_t) &py_lcd_bgr_to_rgb_obj},
     {MP_OBJ_NEW_QSTR(MP_QSTR_draw_string), (mp_obj_t) &py_lcd_draw_string_obj},
->>>>>>> Stashed changes
+    {MP_OBJ_NEW_QSTR(MP_QSTR_fill_rectangle), (mp_obj_t) &py_lcd_fill_rectangle_obj},
     {MP_OBJ_NEW_QSTR(MP_QSTR_XY_RLUD), MP_OBJ_NEW_SMALL_INT(DIR_XY_RLUD)},
     {MP_OBJ_NEW_QSTR(MP_QSTR_YX_RLUD), MP_OBJ_NEW_SMALL_INT(DIR_YX_RLUD)},
     {MP_OBJ_NEW_QSTR(MP_QSTR_XY_LRUD), MP_OBJ_NEW_SMALL_INT(DIR_XY_LRUD)},
@@ -799,7 +761,6 @@ static const mp_map_elem_t globals_dict_table[] = {
     {MP_OBJ_NEW_QSTR(MP_QSTR_ORANGE), MP_OBJ_NEW_SMALL_INT(ORANGE)},
     {MP_OBJ_NEW_QSTR(MP_QSTR_GREENYELLOW), MP_OBJ_NEW_SMALL_INT(GREENYELLOW)},
     {MP_OBJ_NEW_QSTR(MP_QSTR_PINK), MP_OBJ_NEW_SMALL_INT(PINK)},
-
     {NULL, NULL},
 };
 
