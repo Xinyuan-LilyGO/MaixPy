@@ -13,6 +13,10 @@ menu "Board config"
 			bool "Select board TWatch"
 	endchoice
 
+	config LCD_DEFAULT_TYPE
+		int "LCD default type"
+		default 1
+
 	config LCD_DEFAULT_WIDTH
 		int "LCD default width"
 		default 320

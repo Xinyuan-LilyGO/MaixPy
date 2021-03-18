@@ -31,6 +31,7 @@ static enum {
     DEV_CUBE_IPS_240x240,
     DEV_M5STICK,
     DEV_TWATCH,
+    DEV_LILYGO_M1,
     DEV_CONVERTER
 } type = DEV_NONE; // device type
 
@@ -48,7 +49,7 @@ lcd_para_t lcd_para = {
     .offset_h1 = 0,
     .offset_w1 = 0,
     .lcd_type = LCD_TYPE_ST7789,
-    .oct = true, 
+    .oct = true,
     .dir = DIR_YX_RLDU,
     .invert = 0,
     .extra_para = NULL
@@ -56,13 +57,13 @@ lcd_para_t lcd_para = {
 
 static mp_obj_t py_lcd_deinit()
 {
-    switch (type)
-    {
+    switch (type) {
     case DEV_NONE:
         return mp_const_none;
     case DEV_SHIELD:
     case DEV_M5STICK:
     case DEV_TWATCH:
+    case DEV_LILYGO_M1:
     case DEV_CUBE_IPS_240x240:
     case DEV_CONVERTER:
         lcd->deinit();
@@ -91,8 +92,7 @@ void py_lcd_load_config(lcd_para_t *lcd_cfg)
     mp_obj_t tmp = maix_config_get_value(mp_obj_new_str(cfg, sizeof(cfg) - 1), mp_const_none);
     // mp_obj_print_helper(&mp_plat_print, tmp, PRINT_STR);
     // mp_print_str(&mp_plat_print, "\r\n");
-    if (tmp != mp_const_none && mp_obj_is_type(tmp, &mp_type_dict))
-    {
+    if (tmp != mp_const_none && mp_obj_is_type(tmp, &mp_type_dict)) {
         mp_obj_dict_t *self = MP_OBJ_TO_PTR(tmp);
 
         PY_LCD_CHECK_CONFIG(rst, &lcd_cfg->rst_pin);
@@ -121,8 +121,7 @@ static mp_obj_t py_lcd_init(size_t n_args, const mp_obj_t *pos_args, mp_map_t *k
     int ret = 0;
     uint16_t color = BLACK;
     py_lcd_deinit();
-    enum
-    {
+    enum {
         ARG_type,
         ARG_freq,
         ARG_color,
@@ -140,7 +139,12 @@ static mp_obj_t py_lcd_init(size_t n_args, const mp_obj_t *pos_args, mp_map_t *k
         ARG_lcd_type,
     };
     static const mp_arg_t allowed_args[] = {
-        {MP_QSTR_type, MP_ARG_INT, {.u_int = DEV_SHIELD}},
+        {
+            MP_QSTR_type, MP_ARG_INT, {
+                .u_int =
+                CONFIG_LCD_DEFAULT_TYPE
+            }
+        },
         {MP_QSTR_freq, MP_ARG_INT, {.u_int = CONFIG_LCD_DEFAULT_FREQ}},
         {MP_QSTR_color, MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL}},
         {MP_QSTR_width, MP_ARG_INT, {.u_int = CONFIG_LCD_DEFAULT_WIDTH}},
@@ -158,14 +162,10 @@ static mp_obj_t py_lcd_init(size_t n_args, const mp_obj_t *pos_args, mp_map_t *k
     };
     mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
     mp_arg_parse_all(n_args, pos_args, kw_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
-    if (args[ARG_color].u_obj != MP_OBJ_NULL)
-    {
-        if (mp_obj_is_integer(args[ARG_color].u_obj))
-        {
+    if (args[ARG_color].u_obj != MP_OBJ_NULL) {
+        if (mp_obj_is_integer(args[ARG_color].u_obj)) {
             color = mp_obj_get_int(args[ARG_color].u_obj);
-        }
-        else
-        {
+        } else {
             mp_obj_t *arg_color;
             mp_obj_get_array_fixed_n(args[ARG_color].u_obj, 3, &arg_color);
             color = COLOR_R8_G8_B8_TO_RGB565(IM_MAX(IM_MIN(mp_obj_get_int(arg_color[0]), COLOR_R8_MAX), COLOR_R8_MIN),
@@ -194,101 +194,123 @@ static mp_obj_t py_lcd_init(size_t n_args, const mp_obj_t *pos_args, mp_map_t *k
 
     type = args[ARG_type].u_int;
 
-    switch (type)
-    {
-        case DEV_NONE:
-            return mp_const_none;
-        case DEV_SHIELD:
-            py_lcd_load_config(&lcd_para);
+    switch (type) {
+    case DEV_NONE:
+        return mp_const_none;
+    case DEV_SHIELD:
+        py_lcd_load_config(&lcd_para);
 
-            fpioa_set_function(lcd_para.rst_pin, FUNC_GPIOHS0 + RST_GPIONUM);
-            fpioa_set_function(lcd_para.dcx_pin, FUNC_GPIOHS0 + DCX_GPIONUM);
-            fpioa_set_function(lcd_para.cs_pin, FUNC_SPI0_SS0 + LCD_SPI_SLAVE_SELECT);
-            fpioa_set_function(lcd_para.clk_pin, FUNC_SPI0_SCLK);
+        fpioa_set_function(lcd_para.rst_pin, FUNC_GPIOHS0 + RST_GPIONUM);
+        fpioa_set_function(lcd_para.dcx_pin, FUNC_GPIOHS0 + DCX_GPIONUM);
+        fpioa_set_function(lcd_para.cs_pin, FUNC_SPI0_SS0 + LCD_SPI_SLAVE_SELECT);
+        fpioa_set_function(lcd_para.clk_pin, FUNC_SPI0_SCLK);
 
-            // mp_printf(&mp_plat_print, "[%d]: lcd_para.offset_x1=%d, offset_y1=%d, offset_x2=%d, offset_y2=%d,
-            //     width_curr=%d, height_curr=%d, invert=%d, lcd_type=%d\r\n", __LINE__,
-            //     lcd_para.offset_h0, lcd_para.offset_h1, lcd_para.offset_w0, lcd_para.offset_w1,
-            //     width_curr, height_curr, invert, lcd_para.lcd_type);
+        // mp_printf(&mp_plat_print, "[%d]: lcd_para.offset_x1=%d, offset_y1=%d, offset_x2=%d, offset_y2=%d,
+        //     width_curr=%d, height_curr=%d, invert=%d, lcd_type=%d\r\n", __LINE__,
+        //     lcd_para.offset_h0, lcd_para.offset_h1, lcd_para.offset_w0, lcd_para.offset_w1,
+        //     width_curr, height_curr, invert, lcd_para.lcd_type);
 
-            lcd = &lcd_mcu;
-            break;
-        case DEV_M5STICK:
-            lcd_para.oct = false;
-            lcd_para.offset_w0 = 52;
-            lcd_para.offset_h0 = 40;
-            lcd_para.offset_w1 = 40;
-            lcd_para.offset_h1 = 52;
-            lcd_para.invert = true;
-            lcd_para.dir = 0;
-            
-            fpioa_set_function(21, FUNC_GPIOHS0 + RST_GPIONUM);
-            fpioa_set_function(20, FUNC_GPIOHS0 + DCX_GPIONUM);
-            fpioa_set_function(22, FUNC_SPI0_SS0 + LCD_SPI_SLAVE_SELECT);
-            fpioa_set_function(19, FUNC_SPI0_SCLK);
-            fpioa_set_function(18, FUNC_SPI0_D0);
+        lcd = &lcd_mcu;
+        break;
+    case DEV_M5STICK:
+        lcd_para.oct = false;
+        lcd_para.offset_w0 = 52;
+        lcd_para.offset_h0 = 40;
+        lcd_para.offset_w1 = 40;
+        lcd_para.offset_h1 = 52;
+        lcd_para.invert = true;
+        lcd_para.dir = 0;
 
-            lcd = &lcd_mcu;
-            break;
-        case DEV_TWATCH:
-            lcd_para.oct = true;
+        fpioa_set_function(21, FUNC_GPIOHS0 + RST_GPIONUM);
+        fpioa_set_function(20, FUNC_GPIOHS0 + DCX_GPIONUM);
+        fpioa_set_function(22, FUNC_SPI0_SS0 + LCD_SPI_SLAVE_SELECT);
+        fpioa_set_function(19, FUNC_SPI0_SCLK);
+        fpioa_set_function(18, FUNC_SPI0_D0);
+
+        lcd = &lcd_mcu;
+        break;
+    case DEV_TWATCH:
+        lcd_para.oct = true;
+        lcd_para.offset_w0 = 0;
+        lcd_para.offset_h0 = 0;
+        lcd_para.offset_w1 = 0;
+        lcd_para.offset_h1 = 0;
+        lcd_para.invert = true;
+        lcd_para.dir = 0;
+        lcd_para.width = 240;
+        lcd_para.height = 240;
+
+        fpioa_set_function(lcd_para.rst_pin, FUNC_GPIOHS0 + RST_GPIONUM);
+        fpioa_set_function(lcd_para.dcx_pin, FUNC_GPIOHS0 + DCX_GPIONUM);
+        fpioa_set_function(lcd_para.cs_pin, FUNC_SPI0_SS0 + LCD_SPI_SLAVE_SELECT);
+        fpioa_set_function(lcd_para.clk_pin, FUNC_SPI0_SCLK);
+
+        lcd = &lcd_mcu;
+        break;
+
+    case DEV_LILYGO_M1:
+        lcd_para.oct = true;
+        lcd_para.offset_w0 = 0;
+        lcd_para.offset_h0 = 0;
+        lcd_para.offset_w1 = 0;
+        lcd_para.offset_h1 = 0;
+        lcd_para.invert = true;
+        lcd_para.dir = DIR_YX_LRUD;
+
+        lcd_para.width = 320;
+        lcd_para.height = 240;
+
+        fpioa_set_function(lcd_para.rst_pin, FUNC_GPIOHS0 + RST_GPIONUM);
+        fpioa_set_function(lcd_para.dcx_pin, FUNC_GPIOHS0 + DCX_GPIONUM);
+        fpioa_set_function(lcd_para.cs_pin, FUNC_SPI0_SS0 + LCD_SPI_SLAVE_SELECT);
+        fpioa_set_function(lcd_para.clk_pin, FUNC_SPI0_SCLK);
+
+        lcd = &lcd_mcu;
+
+        break;
+    case DEV_CUBE_IPS_240x240:
+        lcd_para.oct = true;
+        lcd_para.offset_w0 = 0;
+        lcd_para.offset_h0 = 0;
+        lcd_para.offset_w1 = 0;
+        lcd_para.offset_h1 = 0;
+        lcd_para.dir = 0;
+
+        lcd_para.width = 240;
+        lcd_para.height = 240;
+
+        if (args[ARG_offset_w0].u_int == -1)
             lcd_para.offset_w0 = 0;
+        if (args[ARG_offset_h0].u_int == -1)
             lcd_para.offset_h0 = 0;
-            lcd_para.offset_w1 = 0;
+        if (args[ARG_offset_w1].u_int == -1)
+            lcd_para.offset_w1 = 80;
+        if (args[ARG_offset_h1].u_int == -1)
             lcd_para.offset_h1 = 0;
-            lcd_para.invert = true;
-            lcd_para.dir = 0;
 
-            fpioa_set_function(lcd_para.rst_pin, FUNC_GPIOHS0 + RST_GPIONUM);
-            fpioa_set_function(lcd_para.dcx_pin, FUNC_GPIOHS0 + DCX_GPIONUM);
-            fpioa_set_function(lcd_para.cs_pin, FUNC_SPI0_SS0 + LCD_SPI_SLAVE_SELECT);
-            fpioa_set_function(lcd_para.clk_pin, FUNC_SPI0_SCLK);
+        fpioa_set_function(lcd_para.rst_pin, FUNC_GPIOHS0 + RST_GPIONUM);
+        fpioa_set_function(lcd_para.dcx_pin, FUNC_GPIOHS0 + DCX_GPIONUM);
+        fpioa_set_function(lcd_para.cs_pin, FUNC_SPI0_SS0 + LCD_SPI_SLAVE_SELECT);
+        fpioa_set_function(lcd_para.clk_pin, FUNC_SPI0_SCLK);
 
-            lcd = &lcd_mcu;
-            break;
-        case DEV_CUBE_IPS_240x240:
-            lcd_para.oct = true;
-            lcd_para.offset_w0 = 0;
-            lcd_para.offset_h0 = 0;
-            lcd_para.offset_w1 = 0;
-            lcd_para.offset_h1 = 0;
-            lcd_para.dir = 0;
+        lcd = &lcd_mcu;
+        break;
+    case DEV_CONVERTER:
+        py_lcd_load_config(&lcd_para);
 
-            lcd_para.width = 240;
-            lcd_para.height = 240;
+        fpioa_set_function(lcd_para.rst_pin, FUNC_GPIOHS0 + RST_GPIONUM);
+        fpioa_set_function(lcd_para.dcx_pin, FUNC_GPIOHS0 + DCX_GPIONUM);
+        fpioa_set_function(lcd_para.cs_pin, FUNC_SPI0_SS0 + LCD_SPI_SLAVE_SELECT);
+        fpioa_set_function(lcd_para.clk_pin, FUNC_SPI0_SCLK);
 
-            if (args[ARG_offset_w0].u_int == -1)
-                lcd_para.offset_w0 = 0;
-            if (args[ARG_offset_h0].u_int == -1)
-                lcd_para.offset_h0 = 0;
-            if (args[ARG_offset_w1].u_int == -1)
-                lcd_para.offset_w1 = 80;
-            if (args[ARG_offset_h1].u_int == -1)
-                lcd_para.offset_h1 = 0;
+        // mp_printf(&mp_plat_print, "DEV_CONVERTER, type: %d rst: %d, %d, %d, %d\n",lcd_para.lcd_type, lcd_para.rst_pin,
+        // lcd_para.dcx_pin,lcd_para.cs_pin, lcd_para.clk_pin);
 
-            fpioa_set_function(lcd_para.rst_pin, FUNC_GPIOHS0 + RST_GPIONUM);
-            fpioa_set_function(lcd_para.dcx_pin, FUNC_GPIOHS0 + DCX_GPIONUM);
-            fpioa_set_function(lcd_para.cs_pin, FUNC_SPI0_SS0 + LCD_SPI_SLAVE_SELECT);
-            fpioa_set_function(lcd_para.clk_pin, FUNC_SPI0_SCLK);
-
-            lcd = &lcd_mcu;
-            break;
-        case DEV_CONVERTER:
-            py_lcd_load_config(&lcd_para);
-
-            fpioa_set_function(lcd_para.rst_pin, FUNC_GPIOHS0 + RST_GPIONUM);
-            fpioa_set_function(lcd_para.dcx_pin, FUNC_GPIOHS0 + DCX_GPIONUM);
-            fpioa_set_function(lcd_para.cs_pin, FUNC_SPI0_SS0 + LCD_SPI_SLAVE_SELECT);
-            fpioa_set_function(lcd_para.clk_pin, FUNC_SPI0_SCLK);
-
-            // mp_printf(&mp_plat_print, "DEV_CONVERTER, type: %d rst: %d, %d, %d, %d\n",lcd_para.lcd_type, lcd_para.rst_pin,
-            // lcd_para.dcx_pin,lcd_para.cs_pin, lcd_para.clk_pin);
-
-            lcd = &lcd_rgb;
-            break;
-        default:
-            mp_raise_ValueError("type error");
-            break;
+        lcd = &lcd_rgb;
+        break;
+    default:
+        mp_raise_ValueError("type error");
+        break;
     }
 
     // init and clear
@@ -296,14 +318,13 @@ static mp_obj_t py_lcd_init(size_t n_args, const mp_obj_t *pos_args, mp_map_t *k
     ret = lcd->init(&lcd_para);
     lcd->clear(color);
 
-    if (ret != 0)
-    {
+    if (ret != 0) {
         lcd_para.width = 0;
         lcd_para.width  = 0;
         width_curr = 0;
         height_curr = 0;
         mp_raise_OSError(ret);
-    }else{
+    } else {
         lcd_para.width = lcd->get_width();
         lcd_para.height = lcd->get_height();
         height_curr = lcd_para.height;
@@ -367,82 +388,74 @@ static mp_obj_t py_lcd_display(size_t n_args, const mp_obj_t *args, mp_map_t *kw
     py_helper_keyword_xy(arg_img, n_args, args, 2, kw_args, MP_OBJ_NEW_QSTR(MP_QSTR_oft), &oft);
 
     // Fit X. bigger or smaller, cut or pad to center
-    if (oft.x < 0 || oft.y < 0)
-    {
-        if (rect.w > width_curr)
-        {
+    if (oft.x < 0 || oft.y < 0) {
+        if (rect.w > width_curr) {
             int adjust = rect.w - width_curr;
             rect.w -= adjust;
             rect.x += adjust / 2;
-        }
-        else if (rect.w < width_curr)
-        {
+        } else if (rect.w < width_curr) {
             int adjust = width_curr - rect.w;
             l_pad = adjust / 2;
             r_pad = (adjust + 1) / 2;
         }
         // Fit Y. bigger or smaller, cut or pad to center
-        if (rect.h > height_curr)
-        {
+        if (rect.h > height_curr) {
             int adjust = rect.h - height_curr;
             rect.h -= adjust;
             rect.y += adjust / 2;
-        }
-        else if (rect.h < height_curr)
-        {
+        } else if (rect.h < height_curr) {
             int adjust = height_curr - rect.h;
             t_pad = adjust / 2;
             b_pad = (adjust + 1) / 2;
         }
-    }
-    else
-    {
+    } else {
         l_pad = oft.x;
         t_pad = oft.y;
     }
     is_cut = ((rect.x != 0) || (rect.y != 0) ||
               (rect.w != arg_img->w) || (rect.h != arg_img->h));
-    switch (type)
-    {
+    switch (type) {
     case DEV_NONE:
         return mp_const_none;
     case DEV_SHIELD:
     case DEV_M5STICK:
     case DEV_TWATCH:
+    case DEV_LILYGO_M1:
     case DEV_CUBE_IPS_240x240:
     case DEV_CONVERTER:
         //fill pad
-        if (oft.x < 0 || oft.y < 0)
-        {
+        if (oft.x < 0 || oft.y < 0) {
             lcd->fill_rectangle(0, 0, width_curr, t_pad, BLACK);
             lcd->fill_rectangle(0, height_curr - b_pad, width_curr, height_curr, BLACK);
             lcd->fill_rectangle(0, t_pad, l_pad, height_curr - b_pad, BLACK);
             lcd->fill_rectangle(width_curr - r_pad, t_pad, width_curr, height_curr - b_pad, BLACK);
         }
-        if (is_cut)
-        {
+        if (is_cut) {
             //cut from img
-            if (IM_IS_GS(arg_img))
-            {
+            if (IM_IS_GS(arg_img)) {
                 lcd->draw_pic_grayroi(l_pad, t_pad, arg_img->w, arg_img->h,
-                                     rect.x, rect.y, rect.w, rect.h, (uint8_t *)(arg_img->pixels));
-            }
-            else
-            {
+                                      rect.x, rect.y, rect.w, rect.h, (uint8_t *)(arg_img->pixels));
+            } else {
                 lcd->draw_pic_roi(l_pad, t_pad, arg_img->w, arg_img->h,
+<<<<<<< Updated upstream
                                  rect.x, rect.y, rect.w, rect.h, (uint8_t *)(arg_img->pixels));
+=======
+                                  rect.x, rect.y, rect.w, rect.h, (uint32_t *)(arg_img->pixels));
+>>>>>>> Stashed changes
             }
-        }
-        else
-        {
+        } else {
             //no cut
-            if (IM_IS_GS(arg_img))
-            {
+            if (IM_IS_GS(arg_img)) {
                 lcd->draw_pic_gray(l_pad, t_pad, rect.w, rect.h, (uint8_t *)(arg_img->pixels));
+<<<<<<< Updated upstream
             }
             else
             {
                 lcd->draw_picture(l_pad, t_pad, rect.w, rect.h, (uint8_t *)(arg_img->pixels));
+=======
+            } else {
+                lcd->draw_picture(l_pad, t_pad, rect.w, rect.h, (uint32_t *)(arg_img->pixels));
+>>>>>>> Stashed changes
             }
         }
         return mp_const_none;
@@ -453,14 +466,10 @@ static mp_obj_t py_lcd_display(size_t n_args, const mp_obj_t *args, mp_map_t *kw
 static mp_obj_t py_lcd_clear(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args)
 {
     uint16_t color = BLACK;
-    if (n_args >= 1)
-    {
-        if (mp_obj_is_integer(pos_args[0]))
-        {
+    if (n_args >= 1) {
+        if (mp_obj_is_integer(pos_args[0])) {
             color = mp_obj_get_int(pos_args[0]);
-        }
-        else
-        {
+        } else {
             mp_obj_t *arg_color;
             mp_obj_get_array_fixed_n(pos_args[0], 3, &arg_color);
             color = COLOR_R8_G8_B8_TO_RGB565(IM_MAX(IM_MIN(mp_obj_get_int(arg_color[0]), COLOR_R8_MAX), COLOR_R8_MIN),
@@ -468,13 +477,13 @@ static mp_obj_t py_lcd_clear(size_t n_args, const mp_obj_t *pos_args, mp_map_t *
                                              IM_MAX(IM_MIN(mp_obj_get_int(arg_color[2]), COLOR_B8_MAX), COLOR_B8_MIN));
         }
     }
-    switch (type)
-    {
+    switch (type) {
     case DEV_NONE:
         return mp_const_none;
     case DEV_SHIELD:
     case DEV_M5STICK:
     case DEV_TWATCH:
+    case DEV_LILYGO_M1:
     case DEV_CUBE_IPS_240x240:
     case DEV_CONVERTER:
         lcd->clear(color);
@@ -493,10 +502,8 @@ STATIC bool check_rotation(mp_int_t r)
 
 void update_offset(uint8_t type, uint8_t rotation)
 {
-    if (type == DEV_CUBE_IPS_240x240)
-    {
-        switch (rotation)
-        {
+    if (type == DEV_CUBE_IPS_240x240) {
+        switch (rotation) {
         case 0:
             lcd->set_offset(80, 0);
             break;
@@ -516,8 +523,7 @@ void update_offset(uint8_t type, uint8_t rotation)
 STATIC lcd_dir_t get_dir_by_rotation(uint8_t rotation)
 {
     lcd_dir_t v = DIR_YX_RLDU;
-    switch (rotation)
-    {
+    switch (rotation) {
     case 0:
         v = DIR_YX_RLDU;
         break;
@@ -536,8 +542,7 @@ STATIC lcd_dir_t get_dir_by_rotation(uint8_t rotation)
 
 STATIC void lcd_set_mirror_helper()
 {
-    switch (rotation)
-    {
+    switch (rotation) {
     case 0: // DIR_YX_RLDU
         screen_dir = DIR_YX_RLUD;
         break;
@@ -562,8 +567,7 @@ STATIC mp_obj_t py_lcd_rotation(size_t n_args, const mp_obj_t *args)
     if (!check_rotation(r))
         mp_raise_ValueError("value:[0,3]");
     rotation = r;
-    switch (rotation)
-    {
+    switch (rotation) {
     case 0:
     case 2:
         width_curr = lcd_para.width;
@@ -577,8 +581,7 @@ STATIC mp_obj_t py_lcd_rotation(size_t n_args, const mp_obj_t *args)
     }
     if (mirror)
         lcd_set_mirror_helper();
-    else
-    {
+    else {
         screen_dir = get_dir_by_rotation(rotation);
         lcd->set_direction(screen_dir);
     }
@@ -602,9 +605,9 @@ STATIC mp_obj_t py_lcd_mirror(size_t n_args, const mp_obj_t *args)
 {
     if (n_args == 0)
         goto end;
-    
+
     mirror = mp_obj_is_true(args[0]);
-    if(mirror){
+    if (mirror) {
         lcd_set_mirror_helper();
         update_offset(type, rotation);
     }
@@ -615,16 +618,15 @@ end:
 extern void imlib_draw_ascii_string(image_t *img, int x_off, int y_off, const char *str, int c, float scale, int x_spacing, int y_spacing, bool mono_space);
 STATIC mp_obj_t py_lcd_draw_string(size_t n_args, const mp_obj_t *args)
 {
-    uint8_t* str_buf = NULL;
-    char* str_cut = NULL;
+    uint8_t *str_buf = NULL;
+    char *str_cut = NULL;
     if (lcd_para.width == 0 || lcd_para.width  == 0)
         mp_raise_msg(&mp_type_ValueError, "not init");
     str_buf = (uint8_t *)malloc(lcd_para.width / 8 * 12 * 8 * 2);
     if (!str_buf)
         mp_raise_OSError(MP_ENOMEM);
     str_cut = (char *)malloc(lcd_para.width / 8 + 1);
-    if (!str_cut)
-    {
+    if (!str_cut) {
         free(str_buf);
         mp_raise_OSError(MP_ENOMEM);
     }
@@ -658,14 +660,19 @@ STATIC mp_obj_t py_lcd_draw_string(size_t n_args, const mp_obj_t *args)
         .h = height,
         .pixels = str_buf
     };
-    for(int i=0; i< width*height; ++i)
-    {
-        *(uint16_t*)(str_buf + i*2) = (uint16_t)bgc;
+    for (int i = 0; i < width * height; ++i) {
+        *(uint16_t *)(str_buf + i * 2) = (uint16_t)bgc;
     }
     imlib_draw_ascii_string(&arg_img, 0, 0, str_cut,
+<<<<<<< Updated upstream
                       fontc, 1, 0, 0,
                       true);
     lcd->draw_picture(x0, y0, width, height, (uint8_t *)str_buf);
+=======
+                            fontc, 1, 0, 0,
+                            true);
+    lcd->draw_picture(x0, y0, width, height, (uint32_t *)str_buf);
+>>>>>>> Stashed changes
     free(str_buf);
     free(str_cut);
     return mp_const_none;
@@ -704,8 +711,7 @@ STATIC mp_obj_t py_lcd_fill_rectangle(size_t n_args, const mp_obj_t *args)
 STATIC mp_obj_t py_lcd_freq(size_t n_args, const mp_obj_t *pos_args)
 {
     mp_int_t freq = lcd->get_freq();
-    if (n_args >= 1)
-    {
+    if (n_args >= 1) {
         freq = mp_obj_get_int(pos_args[0]);
         lcd->set_freq(freq);
     }
@@ -732,6 +738,7 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(py_lcd_fill_rectangle_obj, 3, 5, py_l
 
 static const mp_map_elem_t globals_dict_table[] = {
     {MP_OBJ_NEW_QSTR(MP_QSTR___name__), MP_OBJ_NEW_QSTR(MP_QSTR_lcd)},
+<<<<<<< Updated upstream
     {MP_OBJ_NEW_QSTR(MP_QSTR_init), (mp_obj_t)&py_lcd_init_obj},
     {MP_OBJ_NEW_QSTR(MP_QSTR_deinit), (mp_obj_t)&py_lcd_deinit_obj},
     {MP_OBJ_NEW_QSTR(MP_QSTR_width), (mp_obj_t)&py_lcd_width_obj},
@@ -748,6 +755,23 @@ static const mp_map_elem_t globals_dict_table[] = {
     {MP_OBJ_NEW_QSTR(MP_QSTR_bgr_to_rgb), (mp_obj_t)&py_lcd_bgr_to_rgb_obj},
     {MP_OBJ_NEW_QSTR(MP_QSTR_draw_string), (mp_obj_t)&py_lcd_draw_string_obj},
     {MP_OBJ_NEW_QSTR(MP_QSTR_fill_rectangle), (mp_obj_t)&py_lcd_fill_rectangle_obj},
+=======
+    {MP_OBJ_NEW_QSTR(MP_QSTR_init), (mp_obj_t) &py_lcd_init_obj},
+    {MP_OBJ_NEW_QSTR(MP_QSTR_deinit), (mp_obj_t) &py_lcd_deinit_obj},
+    {MP_OBJ_NEW_QSTR(MP_QSTR_width), (mp_obj_t) &py_lcd_width_obj},
+    {MP_OBJ_NEW_QSTR(MP_QSTR_height), (mp_obj_t) &py_lcd_height_obj},
+    {MP_OBJ_NEW_QSTR(MP_QSTR_type), (mp_obj_t) &py_lcd_type_obj},
+    {MP_OBJ_NEW_QSTR(MP_QSTR_freq), (mp_obj_t) &py_lcd_freq_obj},
+    {MP_OBJ_NEW_QSTR(MP_QSTR_set_backlight), (mp_obj_t) &py_lcd_set_backlight_obj},
+    {MP_OBJ_NEW_QSTR(MP_QSTR_get_backlight), (mp_obj_t) &py_lcd_get_backlight_obj},
+    {MP_OBJ_NEW_QSTR(MP_QSTR_display), (mp_obj_t) &py_lcd_display_obj},
+    {MP_OBJ_NEW_QSTR(MP_QSTR_clear), (mp_obj_t) &py_lcd_clear_obj},
+    {MP_OBJ_NEW_QSTR(MP_QSTR_direction), (mp_obj_t) &py_lcd_direction_obj},
+    {MP_OBJ_NEW_QSTR(MP_QSTR_rotation), (mp_obj_t) &py_lcd_rotation_obj},
+    {MP_OBJ_NEW_QSTR(MP_QSTR_mirror), (mp_obj_t) &py_lcd_mirror_obj},
+    {MP_OBJ_NEW_QSTR(MP_QSTR_bgr_to_rgb), (mp_obj_t) &py_lcd_bgr_to_rgb_obj},
+    {MP_OBJ_NEW_QSTR(MP_QSTR_draw_string), (mp_obj_t) &py_lcd_draw_string_obj},
+>>>>>>> Stashed changes
     {MP_OBJ_NEW_QSTR(MP_QSTR_XY_RLUD), MP_OBJ_NEW_SMALL_INT(DIR_XY_RLUD)},
     {MP_OBJ_NEW_QSTR(MP_QSTR_YX_RLUD), MP_OBJ_NEW_SMALL_INT(DIR_YX_RLUD)},
     {MP_OBJ_NEW_QSTR(MP_QSTR_XY_LRUD), MP_OBJ_NEW_SMALL_INT(DIR_XY_LRUD)},
@@ -783,5 +807,5 @@ STATIC MP_DEFINE_CONST_DICT(globals_dict, globals_dict_table);
 
 const mp_obj_module_t lcd_module = {
     .base = {&mp_type_module},
-    .globals = (mp_obj_t)&globals_dict,
+    .globals = (mp_obj_t) &globals_dict,
 };

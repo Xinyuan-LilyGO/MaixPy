@@ -288,7 +288,7 @@ static void mcu_lcd_set_direction(lcd_dir_t dir)
     //dir |= 0x08;  //excahnge RGB
     lcd_ctl.dir = ((lcd_ctl.dir & DIR_RGB2BRG) == DIR_RGB2BRG) ? (dir | DIR_RGB2BRG) : dir;
 
-#if defined(CONFIG_BOARD_TWATCH)
+#if defined(CONFIG_BOARD_TWATCH) || defined(CONFIG_BOARD_LILYGO_M1)
     lcd_ctl.width = g_lcd_w - 1;
     lcd_ctl.height = g_lcd_h - 1;
     switch (dir)

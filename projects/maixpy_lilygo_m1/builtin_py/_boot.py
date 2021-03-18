@@ -29,7 +29,7 @@ if ide:
     os.remove(ide_mode_conf)
     from machine import UART
     import lcd
-    lcd.init(color=lcd.PINK)
+    lcd.init(type=5,color=lcd.PINK)
     repl = UART.repl_uart()
     repl.init(1500000, 8, None, 1, read_buf_len=2048, ide=True, from_ide=False)
     sys.exit()    
@@ -53,8 +53,10 @@ else:
     p.setShutdownTime(axp202.AXP202_SHUTDOWN_TIME_4S)
     p.setLDO2Voltage(1800)
     p.enablePower(axp202.AXP192_LDO2)
-    p.enablePower(6)
+    p.enablePower(6);
     p.setLDO3Mode(1)
+    p.setLDO4Voltage(6)
+    p.enablePower(axp202.AXP202_LDO4)
 
 banner = '''
  __  __              _____  __   __  _____   __     __
@@ -95,7 +97,7 @@ lcd.init(freq=15000000,color=(255,0,0))
 fm.register(board_info.PIN17,fm.fpioa.GPIO0)
 led=GPIO(GPIO.GPIO0,GPIO.OUT)
 led.value(1)
-lcd.rotation(1)
+#lcd.rotation(2)
 lcd.clear((255,0,0))
 lcd.draw_string(lcd.width()//2-68,lcd.height()//2-4, "Welcome to MaixPy", lcd.WHITE, lcd.RED)
 if test_gpio.value() == 0:

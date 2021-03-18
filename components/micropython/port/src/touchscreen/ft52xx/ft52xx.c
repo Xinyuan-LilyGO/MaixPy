@@ -52,8 +52,10 @@ int ts_ft52xx_poll(ts_ft52xx_pdata_t *pdata)
         y = buff[TOUCH1_YH + i * 6] & 0x0F;
         y <<= 8;
         y |= buff[TOUCH1_YL + i * 6];
+#if CONFIG_LCD_DEFAULT_WIDTH == 240 && CONFIG_LCD_DEFAULT_HEIGHT ==240
         x = map(x, 0, 320, 0, 240);
         y = map(y, 0, 320, 0, 240);
+#endif
     }
 
     if (!pdata->press) {
